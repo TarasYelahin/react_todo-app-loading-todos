@@ -2,23 +2,23 @@
 /* eslint-disable jsx-a11y/control-has-associated-label */
 import React from 'react';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import classNames from 'classnames';
 import { UserWarning } from './UserWarning';
 import { USER_ID, getTodos } from './api/todos';
 import { Todo } from './types/Todo';
-import classNames from 'classnames';
+import { Filter } from './types/Filter';
+import { NotificationMessage } from './types/Notifications';
+import { FILTERS } from './Constants/Filters';
 
 export const App: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState<{
-    message: string | null;
+    message: NotificationMessage | null;
     visible: boolean;
-  }>({
-    message: null,
-    visible: false,
-  });
+  }>({ message: null, visible: false });
 
-  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [filter, setFilter] = useState<Filter>(Filter.ALL);
 
   const [newTodoText, setNewTodoText] = useState<string>('');
 
@@ -37,11 +37,11 @@ export const App: React.FC = () => {
   }, []);
 
   const showNotification = useCallback(
-    (message: string) => {
+    (message: NotificationMessage) => {
       hideNotification();
       setNotification({ message, visible: true });
       notificationTimeoutRef.current = window.setTimeout(() => {
-        setNotification({ message: null, visible: false });
+        setNotification({ message, visible: false });
         notificationTimeoutRef.current = null;
       }, 3000);
     },
@@ -57,7 +57,7 @@ export const App: React.FC = () => {
 
         setTodos(loadedTodos);
       } catch (err) {
-        showNotification('Unable to load todos');
+        showNotification(NotificationMessage.UnableToLoadTodos);
       } finally {
         setLoading(false);
       }
@@ -93,7 +93,7 @@ export const App: React.FC = () => {
     const title = newTodoText.trim();
 
     if (!title) {
-      showNotification('title should not be empty');
+      showNotification(NotificationMessage.TitleEmpty);
       newTodoRef.current?.focus();
 
       return;
@@ -208,47 +208,22 @@ export const App: React.FC = () => {
             </span>
 
             <nav className="filter" data-cy="Filter">
-              <a
-                href="#/"
-                onClick={event => {
-                  event.preventDefault();
-                  setFilter('all');
-                }}
-                className={classNames('filter__link', {
-                  selected: filter === 'all',
-                })}
-                data-cy="FilterLinkAll"
-              >
-                All
-              </a>
-
-              <a
-                href="#/active"
-                onClick={event => {
-                  event.preventDefault();
-                  setFilter('active');
-                }}
-                className={classNames('filter__link', {
-                  selected: filter === 'active',
-                })}
-                data-cy="FilterLinkActive"
-              >
-                Active
-              </a>
-
-              <a
-                href="#/completed"
-                onClick={event => {
-                  event.preventDefault();
-                  setFilter('completed');
-                }}
-                className={classNames('filter__link', {
-                  selected: filter === 'completed',
-                })}
-                data-cy="FilterLinkCompleted"
-              >
-                Completed
-              </a>
+              {FILTERS.map(f => (
+                <a
+                  key={f.value}
+                  href={f.href}
+                  onClick={event => {
+                    event.preventDefault();
+                    setFilter(f.value);
+                  }}
+                  className={classNames('filter__link', {
+                    selected: filter === f.value,
+                  })}
+                  data-cy={f.dataCy}
+                >
+                  {f.label}
+                </a>
+              ))}
             </nav>
 
             <button
